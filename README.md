@@ -1,5 +1,5 @@
 # spring-boot-lucene
-用爬虫从一个网站爬东西下来之后，建立所以库
+用爬虫从一个网站爬东西下来之后，建立索引库
 
 http://localhost:8080/index 建立索引
 
