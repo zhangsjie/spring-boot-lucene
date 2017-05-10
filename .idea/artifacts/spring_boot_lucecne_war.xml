@@ -1,0 +1,8 @@
+<component name="ArtifactManager">
+  <artifact type="war" name="spring-boot-lucecne:war">
+    <output-path>$PROJECT_DIR$/target</output-path>
+    <root id="archive" name="spring-boot-lucecne.war">
+      <element id="artifact" artifact-name="spring-boot-lucecne:war exploded" />
+    </root>
+  </artifact>
+</component>
