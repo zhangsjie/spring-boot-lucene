@@ -1,4 +1,4 @@
-package com.wu.vo;
+package hpe.clqr.vo;
 
 import net.htmlparser.jericho.Element;
 import net.htmlparser.jericho.HTMLElementName;

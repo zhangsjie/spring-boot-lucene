@@ -1,4 +1,4 @@
-package com.wu.vo;
+package hpe.clqr.vo;
 
 /**
  * Created by Administrator on 2016/1/15.

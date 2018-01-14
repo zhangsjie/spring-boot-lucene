@@ -1,7 +1,5 @@
-package com.wu.service;
+package hpe.clqr.service;
 
-import com.wu.vo.HtmlBean;
-import com.wu.vo.HtmlBeanUtil;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.filefilter.TrueFileFilter;
 import org.apache.lucene.analysis.Analyzer;
@@ -25,6 +23,9 @@ import org.apache.lucene.util.Version;
 import org.junit.Test;
 import org.springframework.stereotype.Service;
 import org.wltea.analyzer.lucene.IKAnalyzer;
+
+import hpe.clqr.vo.HtmlBean;
+import hpe.clqr.vo.HtmlBeanUtil;
 
 import java.io.File;
 import java.io.IOException;

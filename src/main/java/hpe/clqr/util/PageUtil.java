@@ -1,4 +1,4 @@
-package com.wu.util;
+package hpe.clqr.util;
 
 import java.util.List;
 

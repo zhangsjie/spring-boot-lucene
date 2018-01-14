@@ -1,8 +1,9 @@
-package com.wu.controller;
+package hpe.clqr.controller;
 
-import com.wu.service.CreateIndex;
-import com.wu.util.PageUtil;
-import com.wu.vo.HtmlBean;
+import hpe.clqr.service.CreateIndex;
+import hpe.clqr.util.PageUtil;
+import hpe.clqr.vo.HtmlBean;
+
 import org.apache.lucene.document.Document;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexReader;
