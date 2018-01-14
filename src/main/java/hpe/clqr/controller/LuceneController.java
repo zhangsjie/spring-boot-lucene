@@ -29,7 +29,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Created by wu on 2016/1/15.
+ * 
+ * @author zhangshe
+ *
  */
 @Controller
 public class LuceneController {

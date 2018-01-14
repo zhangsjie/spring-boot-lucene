@@ -32,11 +32,14 @@ import java.io.IOException;
 import java.util.Collection;
 
 /**
- * Created by wu on 2016/1/15.
+ * 
+ * @author zhangshe
+ *
  */
+
 @Service
 public class CreateIndex {
-    public static String dataDir ="D:/www.bjsxt.com";
+    public static String dataDir ="D:/dataDir";
     public static String indexDir ="D:/index";
     @Test
     public void createIndex(){
