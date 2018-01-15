@@ -53,6 +53,7 @@ public class LuceneController {
 			System.out.println("dalete the indexDir");
 			file.mkdirs();
 		}
+		
 		index.createIndex();
 		return new ModelAndView("index");
 	}

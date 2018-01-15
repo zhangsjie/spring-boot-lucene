@@ -52,8 +52,19 @@ public class CreateIndex {
 	public void createIndex() {
 		Directory dir = null;
 		try {
+			// 如果file是一个目录(该目录下面可能有文件、目录文件、空文件三种情况)
+			File fileDir=new File(indexDir);
+			if(fileDir.isDirectory()) {
+				// 获取file目录下的所有文件(包括目录文件)File对象，放到数组files里
+				String[] files=fileDir.list();
+				if(files!=null) {
+					for(String n:files) {
+						
+					}
+				}
+			}
 			// index repository
-			dir = FSDirectory.open(new File(indexDir));
+			dir = FSDirectory.open(fileDir);
 			System.out.println(dataDir + indexDir);
 			// 分词器
 			Analyzer analyzer = new IKAnalyzer();

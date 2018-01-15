@@ -1,0 +1,7 @@
+server:
+  port: 8080
+fileDirectory: 
+  dataDir: C:\Users\zhangshe\eclipse-workspace\dataDir
+  indexDir: C:\Users\zhangshe\eclipse-workspace\indexDir
+
+  
