@@ -19,6 +19,7 @@ import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
 import org.apache.lucene.util.Version;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -36,7 +37,11 @@ import java.util.List;
  */
 @RestController
 public class LuceneController {
-
+	@Value("${fileDirectory.dataDir}")
+	public static String dataDir;
+	 
+	@Value("${fileDirectory.indexDir}")
+	public static String indexDir;
 	@Autowired
 	private CreateIndex index;
 
@@ -47,7 +52,7 @@ public class LuceneController {
 
 	@RequestMapping("/index")
 	public ModelAndView  createIndex() {
-		File file = new File(CreateIndex.indexDir);
+		File file = new File(indexDir);
 		if (file.exists()) {
 			file.delete();
 			System.out.println("dalete the indexDir");
