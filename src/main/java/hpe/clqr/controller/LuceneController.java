@@ -4,9 +4,12 @@ import hpe.clqr.service.CreateIndex;
 import hpe.clqr.util.PageUtil;
 import hpe.clqr.vo.HtmlBean;
 
+import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexReader;
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.queryparser.classic.MultiFieldQueryParser;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.Query;
@@ -28,6 +31,7 @@ import org.springframework.web.servlet.ModelAndView;
 import org.wltea.analyzer.lucene.IKAnalyzer;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -37,11 +41,11 @@ import java.util.List;
  */
 @RestController
 public class LuceneController {
-	@Value("${fileDirectory.dataDir}")
-	public static String dataDir;
+	//@Value("${fileDirectory.dataDir}")
+	public static String dataDir="C:\\Users\\zhangshe\\eclipse-workspace\\dataDir";
 	 
-	@Value("${fileDirectory.indexDir}")
-	public static String indexDir;
+//	@Value("${fileDirectory.indexDir}")
+	public static String indexDir="C:\\Users\\zhangshe\\eclipse-workspace\\indexDir";
 	@Autowired
 	private CreateIndex index;
 
@@ -51,16 +55,21 @@ public class LuceneController {
 	}
 
 	@RequestMapping("/index")
-	public ModelAndView  createIndex() {
+	public String  createIndex() {
+		 Directory dir = null;
 		File file = new File(indexDir);
 		if (file.exists()) {
 			file.delete();
 			System.out.println("dalete the indexDir");
 			file.mkdirs();
 		}
+		 //  分词器
+		 //  写索引的config
 		
-		index.createIndex();
-		return new ModelAndView("index");
+			int num=index.indexBuilder(new File(indexDir), new File(dataDir));
+		
+		
+		return "共有"+num+" 个文件";
 	}
 
 	@RequestMapping("/search")
