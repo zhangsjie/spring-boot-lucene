@@ -104,7 +104,7 @@ public class CreateIndex {
 			if (file.isDirectory()) {
 				subIndexBuilder(fsdWriter, file);
 			} else if (fileType(file.getName())=="txt") {
-				txtFileIndexBUilder(fsdWriter, file);
+				fileIndexBUilder(fsdWriter, file);
 			}
 		}
 		/*
@@ -122,10 +122,11 @@ public class CreateIndex {
 	 * @param subFile
 	 *            待分析目录
 	 */
-	private  void txtFileIndexBUilder(IndexWriter fsdWriter, File subFile) {
+	private  void fileIndexBUilder(IndexWriter fsdWriter, File subFile) {
 		if (subFile.isHidden() || !subFile.exists() || !subFile.canRead()) {
 			return;
 		}
+		
 		try {
 			Directory ramDir = new RAMDirectory();
 			Analyzer analyzer = new StandardAnalyzer(Version.LUCENE_4_9);// 文本分析器
