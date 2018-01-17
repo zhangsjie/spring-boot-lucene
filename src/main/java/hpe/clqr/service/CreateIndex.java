@@ -22,6 +22,21 @@ import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
 import org.apache.lucene.store.RAMDirectory;
 import org.apache.lucene.util.Version;
+import org.apache.pdfbox.io.RandomAccessBuffer;
+import org.apache.pdfbox.io.RandomAccessRead;
+import org.apache.pdfbox.pdfparser.PDFParser;
+import org.apache.pdfbox.pdmodel.PDDocument;
+import org.apache.pdfbox.text.PDFTextStripper;
+import org.apache.poi.hslf.HSLFSlideShow;
+import org.apache.poi.hslf.model.Slide;
+import org.apache.poi.hslf.model.TextRun;
+import org.apache.poi.hslf.usermodel.RichTextRun;
+import org.apache.poi.hslf.usermodel.SlideShow;
+import org.apache.poi.hwpf.extractor.WordExtractor;
+import org.apache.poi.xslf.XSLFSlideShow;
+import org.apache.poi.xslf.usermodel.XMLSlideShow;
+import org.apache.poi.xwpf.extractor.XWPFWordExtractor;
+import org.apache.poi.xwpf.usermodel.XWPFDocument;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -31,8 +46,12 @@ import hpe.clqr.vo.HtmlBean;
 import hpe.clqr.vo.HtmlBeanUtil;
 
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.util.Collection;
 
 /**
@@ -60,7 +79,7 @@ public class CreateIndex {
 	 *            待分析目录
 	 * @return 返回的文档总数
 	 */
-	public  int indexBuilder(File indexPath, File dataPath) {
+	public int indexBuilder(File indexPath, File dataPath) {
 		if (!dataPath.exists() || !dataPath.isDirectory() || !dataPath.canRead()) {
 			try {
 				throw new IOException(dataPath + " Does not exist or is not allowed access.!");
@@ -98,12 +117,12 @@ public class CreateIndex {
 	 * @param subPath
 	 *            待分析目录
 	 */
-	private  void subIndexBuilder(IndexWriter fsdWriter, File subPath) {
+	private void subIndexBuilder(IndexWriter fsdWriter, File subPath) {
 		File[] fileList = subPath.listFiles();
-		for(File file:fileList) {
+		for (File file : fileList) {
 			if (file.isDirectory()) {
 				subIndexBuilder(fsdWriter, file);
-			} else if (fileType(file.getName())=="txt") {
+			} else /* if (fileType(file.getName())=="txt") */ {
 				fileIndexBUilder(fsdWriter, file);
 			}
 		}
@@ -122,36 +141,129 @@ public class CreateIndex {
 	 * @param subFile
 	 *            待分析目录
 	 */
-	private  void fileIndexBUilder(IndexWriter fsdWriter, File subFile) {
+	
+	private void fileIndexBUilder(IndexWriter fsdWriter, File subFile) {
 		if (subFile.isHidden() || !subFile.exists() || !subFile.canRead()) {
 			return;
 		}
-		
 		try {
 			Directory ramDir = new RAMDirectory();
+			Document doc = new Document();
+			FileInputStream  in = new FileInputStream(subFile);
+			InputStreamReader reader = null;
+			String fileType = fileType(subFile.getName());
 			Analyzer analyzer = new StandardAnalyzer(Version.LUCENE_4_9);// 文本分析器
 			IndexWriterConfig conf = new IndexWriterConfig(Version.LUCENE_4_9, analyzer);
 			conf.setUseCompoundFile(true);// 采用多文件索引结构,默认为复合索引
 			IndexWriter ramWriter = new IndexWriter(ramDir, conf);
+			if (fileType != null && !fileType.equals("")) {
+				if (fileType.equals("doc")) {
+					// 获取doc的word文档
+					WordExtractor wordExtractor = new WordExtractor(in);
 
-			FileReader fileReader = new FileReader(subFile);
-			System.out.println("-> 创建索引 : " + subFile.getCanonicalPath());
-			Document document = new Document();
-			Field fieldName = new TextField("name", subFile.getName(), Store.YES);
-			document.add(fieldName);
-			Field fieldPath = new TextField("path", subFile.getAbsolutePath(), Store.YES);
-			document.add(fieldPath);
-			Field fieldContent = new TextField("content", fileReader);
-			document.add(fieldContent);
+					System.out.println("注意：已为文件“" + subFile.getName() + "”创建了索引");
+					Field fieldName = new TextField("name", subFile.getName(), Store.YES);
+					doc.add(fieldName);
+					Field fieldPath = new TextField("path", subFile.getAbsolutePath(), Store.YES);
+					doc.add(fieldPath);
+					Field fieldContent = new TextField("content", wordExtractor.getText(), Store.YES);
+					doc.add(fieldContent);
 
-			ramWriter.addDocument(document);// 文档添加到内存索引
-			ramWriter.close();// 关闭内存索引，保存添加的数据
+					ramWriter.addDocument(doc);// 文档添加到内存索引
+					ramWriter.close();// 关闭内存索引，保存添加的数据
 
-			fsdWriter.addIndexes(new Directory[] { ramDir });// 添加内存索引到磁盘索引
-			fileReader.close();
+					fsdWriter.addIndexes(new Directory[] { ramDir });// 添加内存索引到磁盘索引
+
+				} else if (fileType.equals("docx")) {
+					XWPFWordExtractor wordExtractor = new XWPFWordExtractor(new XWPFDocument(in));
+					
+
+					System.out.println("注意：已为文件“" + subFile.getName() + "”创建了索引");
+					Field fieldName = new TextField("name", subFile.getName(), Store.YES);
+					doc.add(fieldName);
+					Field fieldPath = new TextField("path", subFile.getAbsolutePath(), Store.YES);
+					doc.add(fieldPath);
+					Field fieldContent = new TextField("content", wordExtractor.getText(), Store.YES);
+					doc.add(fieldContent);
+
+					ramWriter.addDocument(doc);// 文档添加到内存索引
+					ramWriter.close();// 关闭内存索引，保存添加的数据
+
+					fsdWriter.addIndexes(new Directory[] { ramDir });// 添加内存索引到磁盘索引
+
+				}else if(fileType.equals("pdf")) {
+					 PDFParser parser = new PDFParser(new RandomAccessBuffer(in));
+	                    parser.parse();
+	                    PDDocument pdDocument = parser.getPDDocument();
+	                    PDFTextStripper stripper = new PDFTextStripper();
+	                    Field fieldName = new TextField("name", subFile.getName(), Store.YES);
+						doc.add(fieldName);
+						Field fieldPath = new TextField("path", subFile.getAbsolutePath(), Store.YES);
+						doc.add(fieldPath);
+						Field fieldContent = new TextField("content", stripper.getText(pdDocument), Store.YES);
+						doc.add(fieldContent);
+
+						ramWriter.addDocument(doc);// 文档添加到内存索引
+						ramWriter.close();// 关闭内存索引，保存添加的数据
+
+						fsdWriter.addIndexes(new Directory[] { ramDir });// 添加内存索引到磁盘索引
+						pdDocument.close();
+				}else if (fileType.equals("ppt")) {
+					StringBuilder  sb = new StringBuilder("");
+					SlideShow ppt=new SlideShow(new HSLFSlideShow(in));// path为文件的全路径名称，建立SlideShow
+					Slide[] slides = ppt.getSlides();
+					for(Slide each:slides) {
+						TextRun[] textRuns = each.getTextRuns();
+						for(TextRun textRun:textRuns) {
+						 RichTextRun[] richTextRuns = textRun.getRichTextRuns();
+					        for (int j = 0; j < richTextRuns.length; j++) {
+					            sb.append(richTextRuns[j].getText());
+					        }
+						}
+					        sb.append("\n");
+					    }
+					        sb.append("\n");
+				  
+				}else if (fileType.equals("pptx")) {
+					 XSLFSlideShow slideShow;
+					 XMLSlideShow slideShowXml;
+					 StringBuilder sb=new StringBuilder("");
+					 try {
+						slideShow=new XSLFSlideShow(file)
+					} catch (Exception e) {
+						// TODO: handle exception
+					}
+				}
+			}
+		} catch (FileNotFoundException e) {
+			
+			e.printStackTrace();
+
 		} catch (IOException e) {
+			
 			e.printStackTrace();
 		}
+		/*
+		 * try { Directory ramDir = new RAMDirectory(); Analyzer analyzer = new
+		 * StandardAnalyzer(Version.LUCENE_4_9);// 文本分析器 IndexWriterConfig conf = new
+		 * IndexWriterConfig(Version.LUCENE_4_9, analyzer);
+		 * conf.setUseCompoundFile(true);// 采用多文件索引结构,默认为复合索引 IndexWriter ramWriter =
+		 * new IndexWriter(ramDir, conf);
+		 * 
+		 * FileReader fileReader = new FileReader(subFile);
+		 * System.out.println("-> 创建索引 : " + subFile.getCanonicalPath()); Document
+		 * document = new Document(); Field fieldName = new TextField("name",
+		 * subFile.getName(), Store.YES); document.add(fieldName); Field fieldPath = new
+		 * TextField("path", subFile.getAbsolutePath(), Store.YES);
+		 * document.add(fieldPath); Field fieldContent = new TextField("content",
+		 * fileReader); document.add(fieldContent);
+		 * 
+		 * ramWriter.addDocument(document);// 文档添加到内存索引 ramWriter.close();//
+		 * 关闭内存索引，保存添加的数据
+		 * 
+		 * fsdWriter.addIndexes(new Directory[] { ramDir });// 添加内存索引到磁盘索引
+		 * fileReader.close(); } catch (IOException e) { e.printStackTrace();
+		 */
 	}
 
 	/**
@@ -161,13 +273,10 @@ public class CreateIndex {
 	 *            文件名
 	 * @return true 有效文件
 	 */
-	private  String  fileType(String fileName) {
-		String fileType = fileName.substring(fileName.lastIndexOf(".") + 1,
-                fileName.length()).toLowerCase();
+	private String fileType(String fileName) {
+		String fileType = fileName.substring(fileName.lastIndexOf(".") + 1, fileName.length()).toLowerCase();
 		return fileType;
 	}
-
-
 
 	@Test
 	public void search() {
