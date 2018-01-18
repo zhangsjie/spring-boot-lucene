@@ -1,13 +1,10 @@
 package hpe.clqr.service;
 
-import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.filefilter.TrueFileFilter;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.Field.Store;
-import org.apache.lucene.document.StringField;
 import org.apache.lucene.document.TextField;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexReader;
@@ -23,7 +20,6 @@ import org.apache.lucene.store.FSDirectory;
 import org.apache.lucene.store.RAMDirectory;
 import org.apache.lucene.util.Version;
 import org.apache.pdfbox.io.RandomAccessBuffer;
-import org.apache.pdfbox.io.RandomAccessRead;
 import org.apache.pdfbox.pdfparser.PDFParser;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.text.PDFTextStripper;
@@ -33,11 +29,18 @@ import org.apache.poi.hslf.model.TextRun;
 import org.apache.poi.hslf.usermodel.RichTextRun;
 import org.apache.poi.hslf.usermodel.SlideShow;
 import org.apache.poi.hwpf.extractor.WordExtractor;
+import org.apache.poi.openxml4j.exceptions.OpenXML4JException;
+import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.ss.usermodel.WorkbookFactory;
 import org.apache.poi.xslf.XSLFSlideShow;
 import org.apache.poi.xslf.usermodel.XMLSlideShow;
 import org.apache.poi.xslf.usermodel.XSLFSlide;
 import org.apache.poi.xwpf.extractor.XWPFWordExtractor;
 import org.apache.poi.xwpf.usermodel.XWPFDocument;
+import org.apache.xmlbeans.XmlException;
 import org.junit.Test;
 import org.openxmlformats.schemas.drawingml.x2006.main.CTRegularTextRun;
 import org.openxmlformats.schemas.drawingml.x2006.main.CTTextBody;
@@ -49,17 +52,12 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.wltea.analyzer.lucene.IKAnalyzer;
 
-import hpe.clqr.vo.HtmlBean;
-import hpe.clqr.vo.HtmlBeanUtil;
-
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
-import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.util.Collection;
 
 /**
  * 
@@ -134,9 +132,10 @@ public class CreateIndex {
 			}
 		}
 		/*
-		 * for (int i = 0; i < subPath.length(); i++) { File file = fileList[i]; if
-		 * (file.isDirectory()) { subIndexBuilder(fsdWriter, file); } else if
-		 * (IsValidType(file.getName())) { fileIndexBUilder(fsdWriter, file); } }
+		 * for (int i = 0; i < subPath.length(); i++) { File file = fileList[i];
+		 * if (file.isDirectory()) { subIndexBuilder(fsdWriter, file); } else if
+		 * (IsValidType(file.getName())) { fileIndexBUilder(fsdWriter, file); }
+		 * }
 		 */
 	}
 
@@ -148,7 +147,7 @@ public class CreateIndex {
 	 * @param subFile
 	 *            待分析目录
 	 */
-	
+
 	private void fileIndexBUilder(IndexWriter fsdWriter, File subFile) {
 		if (subFile.isHidden() || !subFile.exists() || !subFile.canRead()) {
 			return;
@@ -156,15 +155,15 @@ public class CreateIndex {
 		try {
 			Directory ramDir = new RAMDirectory();
 			Document doc = new Document();
-			InputStream  in = new FileInputStream(subFile);
-			InputStreamReader reader = null;
+			InputStream in = new FileInputStream(subFile);
 			String fileType = fileType(subFile.getName());
 			Analyzer analyzer = new StandardAnalyzer(Version.LUCENE_4_9);// 文本分析器
 			IndexWriterConfig conf = new IndexWriterConfig(Version.LUCENE_4_9, analyzer);
 			conf.setUseCompoundFile(true);// 采用多文件索引结构,默认为复合索引
 			IndexWriter ramWriter = new IndexWriter(ramDir, conf);
 			if (fileType != null && !fileType.equals("")) {
-				if (fileType.equals("doc")) {
+				if (fileType.equals("doc") || fileType.equals("java") || fileType.equals("cs")
+						|| fileType.equals("pythonn") || fileType.equals("dtsx") || fileType.equals("sql")) {
 					// 获取doc的word文档
 					WordExtractor wordExtractor = new WordExtractor(in);
 
@@ -183,7 +182,6 @@ public class CreateIndex {
 
 				} else if (fileType.equals("docx")) {
 					XWPFWordExtractor wordExtractor = new XWPFWordExtractor(new XWPFDocument(in));
-					
 
 					System.out.println("注意：已为文件“" + subFile.getName() + "”创建了索引");
 					Field fieldName = new TextField("name", subFile.getName(), Store.YES);
@@ -198,97 +196,131 @@ public class CreateIndex {
 
 					fsdWriter.addIndexes(new Directory[] { ramDir });// 添加内存索引到磁盘索引
 
-				}else if(fileType.equals("pdf")) {
-					 PDFParser parser = new PDFParser(new RandomAccessBuffer(in));
-	                    parser.parse();
-	                    PDDocument pdDocument = parser.getPDDocument();
-	                    PDFTextStripper stripper = new PDFTextStripper();
-	                    Field fieldName = new TextField("name", subFile.getName(), Store.YES);
-						doc.add(fieldName);
-						Field fieldPath = new TextField("path", subFile.getAbsolutePath(), Store.YES);
-						doc.add(fieldPath);
-						Field fieldContent = new TextField("content", stripper.getText(pdDocument), Store.YES);
-						doc.add(fieldContent);
+				} else if (fileType.equals("pdf")) {
+					PDFParser parser = new PDFParser(new RandomAccessBuffer(in));
+					parser.parse();
+					PDDocument pdDocument = parser.getPDDocument();
+					PDFTextStripper stripper = new PDFTextStripper();
+					Field fieldName = new TextField("name", subFile.getName(), Store.YES);
+					doc.add(fieldName);
+					Field fieldPath = new TextField("path", subFile.getAbsolutePath(), Store.YES);
+					doc.add(fieldPath);
+					Field fieldContent = new TextField("content", stripper.getText(pdDocument), Store.YES);
+					doc.add(fieldContent);
 
-						ramWriter.addDocument(doc);// 文档添加到内存索引
-						ramWriter.close();// 关闭内存索引，保存添加的数据
+					ramWriter.addDocument(doc);// 文档添加到内存索引
+					ramWriter.close();// 关闭内存索引，保存添加的数据
 
-						fsdWriter.addIndexes(new Directory[] { ramDir });// 添加内存索引到磁盘索引
-						pdDocument.close();
-				}else if (fileType.equals("ppt")) {
-					StringBuilder  sb = new StringBuilder("");
-					
-					SlideShow ppt=new SlideShow(new HSLFSlideShow(in));// path为文件的全路径名称，建立SlideShow
+					fsdWriter.addIndexes(new Directory[] { ramDir });// 添加内存索引到磁盘索引
+					pdDocument.close();
+
+				} else if (fileType.equals("ppt")) {
+					StringBuilder sb = new StringBuilder("");
+
+					SlideShow ppt = new SlideShow(new HSLFSlideShow(in));// path为文件的全路径名称，建立SlideShow
 					Slide[] slides = ppt.getSlides();
-					for(Slide slide:slides) {
+					for (Slide slide : slides) {
 						TextRun[] textRuns = slide.getTextRuns();
-						for(TextRun textRun:textRuns) {
-						 RichTextRun[] richTextRuns = textRun.getRichTextRuns();
-					        for (int j = 0; j < richTextRuns.length; j++) {
-					            sb.append(richTextRuns[j].getText());
-					            sb.append("\n");
-					        }
-					        sb.append("\n");
+						for (TextRun textRun : textRuns) {
+							RichTextRun[] richTextRuns = textRun.getRichTextRuns();
+							for (int j = 0; j < richTextRuns.length; j++) {
+								sb.append(richTextRuns[j].getText());
+								sb.append(",");
+							}
+							sb.append(",");
 						}
-					    }
-				  
-				}else if (fileType.equals("pptx")) {
-					 
-					 StringBuilder sb=new StringBuilder("");
-					 try {
-						 XMLSlideShow pptx= new XMLSlideShow(new XSLFSlideShow(subFile.getCanonicalPath()));;
-						 for (XSLFSlide slide : pptx.getSlides()) {
-							 CTSlide rawSlide = slide._getCTSlide();
-							 CTGroupShape gs = rawSlide.getCSld().getSpTree();
-							 CTShape[] shapes = gs.getSpArray();
-							 for (CTShape shape : shapes) {
-								 CTTextBody tb = shape.getTxBody();
-								 if (null == tb)  continue;
-								 CTTextParagraph[] paras = tb.getPArray();
-								 for (CTTextParagraph textParagraph : paras) {
-				                        CTRegularTextRun[] textRuns = textParagraph.getRArray();
-				                        for (CTRegularTextRun textRun : textRuns) {
-				                            sb.append(textRun.getT());
-				                            sb.append("\n");
-				                        }
-				                    }
-							 }
-				                   
-						 }
-					} catch (Exception e) {
-						// TODO: handle exception
+					}
+					Field fieldName = new TextField("name", subFile.getName(), Store.YES);
+					doc.add(fieldName);
+					Field fieldPath = new TextField("path", subFile.getAbsolutePath(), Store.YES);
+					doc.add(fieldPath);
+					Field fieldContent = new TextField("content", sb.toString(), Store.YES);
+					doc.add(fieldContent);
+
+					ramWriter.addDocument(doc);// 文档添加到内存索引
+					ramWriter.close();// 关闭内存索引，保存添加的数据
+
+					fsdWriter.addIndexes(new Directory[] { ramDir });// 添加内存索引到磁盘索引
+				} else if (fileType.equals("pptx")) {
+
+					StringBuilder sb = new StringBuilder("");
+
+					XMLSlideShow pptx = new XMLSlideShow(new XSLFSlideShow(subFile.getCanonicalPath()));
+					;
+					for (XSLFSlide slide : pptx.getSlides()) {
+						CTSlide rawSlide = slide._getCTSlide();
+						CTGroupShape gs = rawSlide.getCSld().getSpTree();
+						CTShape[] shapes = gs.getSpArray();
+						for (CTShape shape : shapes) {
+							CTTextBody tb = shape.getTxBody();
+							if (null == tb)
+								continue;
+							CTTextParagraph[] paras = tb.getPArray();
+							for (CTTextParagraph textParagraph : paras) {
+								CTRegularTextRun[] textRuns = textParagraph.getRArray();
+								for (CTRegularTextRun textRun : textRuns) {
+									sb.append(textRun.getT());
+									sb.append(",");
+								}
+							}
+						}
+
+					}
+					Field fieldName = new TextField("name", subFile.getName(), Store.YES);
+					doc.add(fieldName);
+					Field fieldPath = new TextField("path", subFile.getAbsolutePath(), Store.YES);
+					doc.add(fieldPath);
+					Field fieldContent = new TextField("content", sb.toString(), Store.YES);
+					doc.add(fieldContent);
+
+					ramWriter.addDocument(doc);// 文档添加到内存索引
+					ramWriter.close();// 关闭内存索引，保存添加的数据
+
+					fsdWriter.addIndexes(new Directory[] { ramDir });// 添加内存索引到磁盘索引
+				}
+			} else if (fileType.equals("xls") || fileType.equals("xlsx")) {
+				Workbook workBook = WorkbookFactory.create(in); // 这种方式 Excel
+																// 2003/2007/2010
+																// 都是可以处理的
+				int sheetCount = workBook.getNumberOfSheets(); // Sheet的数量
+				StringBuilder sb = new StringBuilder("");
+				// 遍历每个Sheet
+				for (int s = 0; s < sheetCount; s++) {
+					Sheet sheet = workBook.getSheetAt(s);
+					int rowCount = sheet.getPhysicalNumberOfRows(); // 获取总行数
+					// 遍历每一行
+					for (int r = 0; r < rowCount; r++) {
+						Row row = sheet.getRow(r);
+						int cellCount = row.getPhysicalNumberOfCells();// 获取总行数
+						// 遍历每一列
+						for (int c = 0; c < cellCount; c++) {
+							Cell cell = row.getCell(c);
+							sb.append(cell.getStringCellValue());
+							sb.append(",");
+						}
 					}
 				}
+				Field fieldName = new TextField("name", subFile.getName(), Store.YES);
+				doc.add(fieldName);
+				Field fieldPath = new TextField("path", subFile.getAbsolutePath(), Store.YES);
+				doc.add(fieldPath);
+				Field fieldContent = new TextField("content", sb.toString(), Store.YES);
+				doc.add(fieldContent);
+
+				ramWriter.addDocument(doc);// 文档添加到内存索引
+				ramWriter.close();// 关闭内存索引，保存添加的数据
+
+				fsdWriter.addIndexes(new Directory[] { ramDir });// 添加内存索引到磁盘索引
 			}
 		} catch (FileNotFoundException e) {
-			
 			e.printStackTrace();
-
 		} catch (IOException e) {
-			
+			e.printStackTrace();
+		} catch (XmlException e) {
+			e.printStackTrace();
+		} catch (OpenXML4JException e) {
 			e.printStackTrace();
 		}
-		/*
-		 * try { Directory ramDir = new RAMDirectory(); Analyzer analyzer = new
-		 * StandardAnalyzer(Version.LUCENE_4_9);// 文本分析器 IndexWriterConfig conf = new
-		 * IndexWriterConfig(Version.LUCENE_4_9, analyzer);
-		 * conf.setUseCompoundFile(true);// 采用多文件索引结构,默认为复合索引 IndexWriter ramWriter =
-		 * new IndexWriter(ramDir, conf);
-		 * 
-		 * FileReader fileReader = new FileReader(subFile);
-		 * System.out.println("-> 创建索引 : " + subFile.getCanonicalPath()); Document
-		 * document = new Document(); Field fieldName = new TextField("name",
-		 * subFile.getName(), Store.YES); document.add(fieldName); Field fieldPath = new
-		 * TextField("path", subFile.getAbsolutePath(), Store.YES);
-		 * document.add(fieldPath); Field fieldContent = new TextField("content",
-		 * fileReader); document.add(fieldContent);
-		 * 
-		 * ramWriter.addDocument(document);// 文档添加到内存索引 ramWriter.close();//
-		 * 关闭内存索引，保存添加的数据
-		 * 
-		 * fsdWriter.addIndexes(new Directory[] { ramDir });// 添加内存索引到磁盘索引
-		 * fileReader.close(); } catch (IOException e) { e.printStackTrace();
-		 */
 	}
 
 	/**
