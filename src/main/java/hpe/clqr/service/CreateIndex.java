@@ -35,9 +35,16 @@ import org.apache.poi.hslf.usermodel.SlideShow;
 import org.apache.poi.hwpf.extractor.WordExtractor;
 import org.apache.poi.xslf.XSLFSlideShow;
 import org.apache.poi.xslf.usermodel.XMLSlideShow;
+import org.apache.poi.xslf.usermodel.XSLFSlide;
 import org.apache.poi.xwpf.extractor.XWPFWordExtractor;
 import org.apache.poi.xwpf.usermodel.XWPFDocument;
 import org.junit.Test;
+import org.openxmlformats.schemas.drawingml.x2006.main.CTRegularTextRun;
+import org.openxmlformats.schemas.drawingml.x2006.main.CTTextBody;
+import org.openxmlformats.schemas.drawingml.x2006.main.CTTextParagraph;
+import org.openxmlformats.schemas.presentationml.x2006.main.CTGroupShape;
+import org.openxmlformats.schemas.presentationml.x2006.main.CTShape;
+import org.openxmlformats.schemas.presentationml.x2006.main.CTSlide;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.wltea.analyzer.lucene.IKAnalyzer;
@@ -149,7 +156,7 @@ public class CreateIndex {
 		try {
 			Directory ramDir = new RAMDirectory();
 			Document doc = new Document();
-			FileInputStream  in = new FileInputStream(subFile);
+			InputStream  in = new FileInputStream(subFile);
 			InputStreamReader reader = null;
 			String fileType = fileType(subFile.getName());
 			Analyzer analyzer = new StandardAnalyzer(Version.LUCENE_4_9);// 文本分析器
@@ -210,26 +217,44 @@ public class CreateIndex {
 						pdDocument.close();
 				}else if (fileType.equals("ppt")) {
 					StringBuilder  sb = new StringBuilder("");
+					
 					SlideShow ppt=new SlideShow(new HSLFSlideShow(in));// path为文件的全路径名称，建立SlideShow
 					Slide[] slides = ppt.getSlides();
-					for(Slide each:slides) {
-						TextRun[] textRuns = each.getTextRuns();
+					for(Slide slide:slides) {
+						TextRun[] textRuns = slide.getTextRuns();
 						for(TextRun textRun:textRuns) {
 						 RichTextRun[] richTextRuns = textRun.getRichTextRuns();
 					        for (int j = 0; j < richTextRuns.length; j++) {
 					            sb.append(richTextRuns[j].getText());
+					            sb.append("\n");
 					        }
+					        sb.append("\n");
 						}
-					        sb.append("\n");
 					    }
-					        sb.append("\n");
 				  
 				}else if (fileType.equals("pptx")) {
-					 XSLFSlideShow slideShow;
-					 XMLSlideShow slideShowXml;
+					 
 					 StringBuilder sb=new StringBuilder("");
 					 try {
-						slideShow=new XSLFSlideShow(file)
+						 XMLSlideShow pptx= new XMLSlideShow(new XSLFSlideShow(subFile.getCanonicalPath()));;
+						 for (XSLFSlide slide : pptx.getSlides()) {
+							 CTSlide rawSlide = slide._getCTSlide();
+							 CTGroupShape gs = rawSlide.getCSld().getSpTree();
+							 CTShape[] shapes = gs.getSpArray();
+							 for (CTShape shape : shapes) {
+								 CTTextBody tb = shape.getTxBody();
+								 if (null == tb)  continue;
+								 CTTextParagraph[] paras = tb.getPArray();
+								 for (CTTextParagraph textParagraph : paras) {
+				                        CTRegularTextRun[] textRuns = textParagraph.getRArray();
+				                        for (CTRegularTextRun textRun : textRuns) {
+				                            sb.append(textRun.getT());
+				                            sb.append("\n");
+				                        }
+				                    }
+							 }
+				                   
+						 }
 					} catch (Exception e) {
 						// TODO: handle exception
 					}

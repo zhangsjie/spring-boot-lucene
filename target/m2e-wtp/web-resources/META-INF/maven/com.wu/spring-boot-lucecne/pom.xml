@@ -15,7 +15,7 @@
 	</parent>
 
 	<properties>
-		<!-- 指定一下jdk的版本 ，这里我们使用jdk 1.8  -->
+		<!-- 指定一下jdk的版本 ，这里我们使用jdk 1.8 -->
 		<java.version>1.8</java.version>
 	</properties>
 
@@ -42,9 +42,30 @@
 		<dependency>
 			<groupId>org.apache.poi</groupId>
 			<artifactId>poi</artifactId>
-			<version>3.8</version>
+			<version>3.6</version>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.poi</groupId>
+			<artifactId>poi-ooxml</artifactId>
+			<version>3.6</version>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.poi</groupId>
+			<artifactId>poi-ooxml-schemas</artifactId>
+			<version>3.6</version>
 		</dependency>
 
+		<dependency>
+			<groupId>org.apache.poi</groupId>
+			<artifactId>poi-scratchpad</artifactId>
+			<version>3.6</version>
+		</dependency>
+
+		<dependency>
+			<groupId>org.apache.pdfbox</groupId>
+			<artifactId>pdfbox</artifactId>
+			<version>2.0.8</version>
+		</dependency>
 		<!-- JSTL（JSP Standard Tag Library，JSP标准标签库)是一个不断完善的开放源代码的JSP标签库，是由apache的jakarta小组来维护的。 -->
 		<dependency>
 			<groupId>javax.servlet</groupId>
@@ -54,7 +75,7 @@
 			<groupId>junit</groupId>
 			<artifactId>junit</artifactId>
 			<version>4.12</version>
-			<!--  <scope>test</scope>-->
+			<!-- <scope>test</scope> -->
 		</dependency>
 		<dependency>
 			<groupId>commons-io</groupId>
