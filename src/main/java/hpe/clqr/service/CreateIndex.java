@@ -162,8 +162,26 @@ public class CreateIndex {
 			conf.setUseCompoundFile(true);// 采用多文件索引结构,默认为复合索引
 			IndexWriter ramWriter = new IndexWriter(ramDir, conf);
 			if (fileType != null && !fileType.equals("")) {
-				if (fileType.equals("doc") || fileType.equals("java") || fileType.equals("cs")
+				if(fileType.equals("txt")|| fileType.equals("java") || fileType.equals("cs")
 						|| fileType.equals("pythonn") || fileType.equals("dtsx") || fileType.equals("sql")) {
+					Long fileLengthLong = subFile.length();  
+					byte[] fileContent = new byte[fileLengthLong.intValue()]; 
+					 in.read(fileContent);  
+					 in.close();
+					 String context=new String(fileContent);
+					Field fieldName = new TextField("name", subFile.getName(), Store.YES);
+					doc.add(fieldName);
+					Field fieldPath = new TextField("path", subFile.getAbsolutePath(), Store.YES);
+					doc.add(fieldPath);
+					Field fieldContent = new TextField("content", context, Store.YES);
+					doc.add(fieldContent);
+
+					ramWriter.addDocument(doc);// 文档添加到内存索引
+					ramWriter.close();// 关闭内存索引，保存添加的数据
+
+					fsdWriter.addIndexes(new Directory[] { ramDir });// 添加内存索引到磁盘索引
+				}
+				if (fileType.equals("doc") ) {
 					// 获取doc的word文档
 					WordExtractor wordExtractor = new WordExtractor(in);
 
